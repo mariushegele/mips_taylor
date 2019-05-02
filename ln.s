@@ -25,7 +25,7 @@ main:
     mov.s $f12, $f0  # set read float as arg
 
     # Execute Function
-    jal ln0
+    jal ln
 
     # Store Result
     s.s $f0, z
@@ -38,6 +38,47 @@ main:
     jal prompt_redo
 
 
+#########       ln        #########
+
+# arg:          $f12 = x
+# internal:     $f1 = a, $f2 / $f9 = b
+# return:       $f0 = ln0(0) + b * ln0(2)
+
+ln:
+    li.s $f2, 0.0           # b = 0
+    mov.s $f1, $f12         # a = x
+
+    li.s $f3, 1.0
+    li.s $f4, 2.0
+    
+loop_ln: 
+    c.le.s $f1, $f4         # (a <= 2)? return : loop
+    bc1t ret_ln
+
+    div.s $f1, $f1, $f4        # a = a / 2
+    
+    add.s $f2, $f2, $f3     # b++
+    j loop_ln
+
+ret_ln:
+    # stash b TODO nicer with store word
+    mov.s $f9, $f2
+
+
+    move $t0, $ra  # stash stack pointer
+    mov.s $f12, $f1     # set arg = a
+    jal ln0
+    mov.s $f11, $f0     # temp = ln0(a)
+
+    li.s $f12, 2.0     # set arg = 2
+    jal ln0             # f0 = ln0(2)    
+
+    mul.s $f0, $f9, $f0     # f0 = b * ln0(2)
+    add.s $f0, $f11, $f0     # return = ln0(a) + b * ln0(2)
+
+    jr $t0
+
+
 #########       ln0         #########
 
 # config:       $f3 = K
@@ -46,7 +87,7 @@ main:
 # return:       $f0 = sum
 
 ln0:
-    li.s $f3, 10000.0             # K = 1000
+    li.s $f3, 10000.0             # K = 100
 
     li.s $f5, 1.0               # f5 = 1.0
     sub.s $f1, $f12, $f5        # el = x - 1.0
@@ -56,7 +97,9 @@ ln0:
 
     li.s $f2, 2.0               # float i = 2
 
-loop: 
+loop_ln0: 
+    c.lt.s $f2, $f3             # c = (i < K)
+    bc1f ret_ln0                  # if c return
     
     sub.s $f7, $f2, $f5         # f7 = i - 1
     mul.s $f1, $f1, $f7         # el = el * (i-1)
@@ -69,9 +112,9 @@ loop:
 
     add.s $f2, $f2, $f5         # i++
 
-    c.lt.s $f2, $f3             # c = (i < K)
-    bc1t loop                   # if c return
-
+    j loop_ln0
+   
+ret_ln0:
     jr $ra                      # else return
 
 

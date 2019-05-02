@@ -2,20 +2,23 @@
 #include <math.h>
 
 float ln(float);
+float ln0(float);
 
 int main() {
 
-    printf("ln(1) %f\n", ln(1));
-    printf("ln(1.1222) %f\n", ln(1.1222));
-    printf("ln(2) %f\n", ln(2));
-    printf("ln(3) %f\n", ln(3)); // doesn't converge
+    printf("ln0(1) %f\n", ln0(1));
+    printf("ln0(1.1222) %f\n", ln0(1.1222));
+    printf("ln0(2) %f\n", ln0(2));
+    printf("ln0(3) %f\n", ln0(3)); // doesn't converge
+    printf("ln(3) %f\n", ln(3));
+    printf("ln(150) %f\n", ln(150));
     
     return 1;
 
 }
 
 
-float ln(float x) {
+float ln0(float x) {
 
     static unsigned int K = 1000;
 
@@ -31,4 +34,21 @@ float ln(float x) {
     }
 
     return sum;
+}
+
+/**
+ * extends the convergence area of ln0 to any x > 0
+ * if a <= 2, find
+ *      x = a * 2^b, and calculate
+ *      ln(x) = ln(a) + b * ln(2)
+ */
+float ln(float x) {
+    float a = x;
+    int b = 0;
+    while(a > 2) {
+        a = a / 2;
+        b++;
+    } // => a == x / 2^b
+
+    return ln0(a) + b * ln0(2);
 }
