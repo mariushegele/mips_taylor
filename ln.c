@@ -52,3 +52,27 @@ float ln(float x) {
 
     return ln0(a) + b * ln0(2);
 }
+
+/**
+ * param: n     number of equidistant values
+ * param: xmin  lower bound for values
+ * param: xmax  upper bound for values
+ */
+int main(unsigned int n, int xmin, int xmax) {
+    if(xmin > xmax) {
+        return 0;
+    }
+
+    int dist = (xmax - xmin) / n;
+    int x = xmin;
+    while(x != xmax) {
+        printf("%d \t", x);
+        int y = e(x);
+        printf("%d \t", y);
+        int z = ln(y);
+        printf("%d \t", z);
+
+        printf("\n");
+        x += dist;
+    }
+}
