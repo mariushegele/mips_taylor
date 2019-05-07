@@ -9,7 +9,7 @@ all: $(addprefix $(OUTPUT)/, $(TARGETS))
 
 $(OUTPUT)/%.o: %.c $(DEPS) $(OUTPUT)
 	echo "Building " $<
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -d -o $@ $< $(CFLAGS)
 
 $(OUTPUT):
 	$(SILENT_MKDIR)mkdir $(OUTPUT)

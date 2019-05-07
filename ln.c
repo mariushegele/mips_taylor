@@ -1,26 +1,46 @@
 #include <stdio.h>
 #include <math.h>
 
+void main_eq(unsigned int, float, float);
 float ln(float);
 float ln0(float);
+float myexp(float);
+
 
 int main() {
-
-    printf("ln0(1) %f\n", ln0(1));
-    printf("ln0(1.1222) %f\n", ln0(1.1222));
-    printf("ln0(2) %f\n", ln0(2));
-    printf("ln0(3) %f\n", ln0(3)); // doesn't converge
-    printf("ln(3) %f\n", ln(3));
-    printf("ln(150) %f\n", ln(150));
-    
+    main_eq(20, -5.0, 5.0);
     return 1;
 
 }
 
+/**
+ * param: n     number of equidistant values
+ * param: xmin  lower bound for values
+ * param: xmax  upper bound for values
+ */
+void main_eq(unsigned int n, float xmin, float xmax) {
+    if(xmin > xmax) {
+        return;
+    }
+
+    float dist = (xmax - xmin) / n;
+    float x = xmin;
+    printf("x \t\ty \t\tz \n");
+    while(x < xmax) {
+        printf("%f \t", x);
+        float y = /*my*/exp(x);
+        printf("%f \t", y);
+        float z = ln(y);
+        printf("%f \t", z);
+
+        printf("\n");
+        x += dist;
+    }
+}
 
 float ln0(float x) {
 
-    static unsigned int K = 1000;
+    const unsigned int K = 10000;
 
     float el = (x-1); // the current element value
     float sum = el;
@@ -53,26 +73,21 @@ float ln(float x) {
     return ln0(a) + b * ln0(2);
 }
 
-/**
- * param: n     number of equidistant values
- * param: xmin  lower bound for values
- * param: xmax  upper bound for values
- */
-int main(unsigned int n, int xmin, int xmax) {
-    if(xmin > xmax) {
-        return 0;
+
+/* not working */
+float myexp(float x) {
+    const unsigned int K = 10000;
+
+    float sum = 0;
+    float enumerator = 1;
+    float denominator = 1;
+    int i = 1;
+    while(i < K) {
+        enumerator *= x;
+        denominator *= i;
+        sum += enumerator / denominator;
+        i++;
     }
 
-    int dist = (xmax - xmin) / n;
-    int x = xmin;
-    while(x != xmax) {
-        printf("%d \t", x);
-        int y = e(x);
-        printf("%d \t", y);
-        int z = ln(y);
-        printf("%d \t", z);
-
-        printf("\n");
-        x += dist;
-    }
+    return sum;
 }
