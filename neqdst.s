@@ -1,31 +1,83 @@
 # Start with data declarations
 #
 .data 
-n_prompt: .asciiz "Enter x: "
-res: .asciiz "ln(x) = "
+n_prompt: .asciiz "Enter N: "
+xmin_prompt: .asciiz "Enter x_min: "
+xmax_prompt: .asciiz "Enter x_max: "
 done_prompt: .asciiz " Done [0 = Yes, 1 = No]: "
 newline: .asciiz "\n"
 
 .align 2
 
-z: .word 4
-btemp: .word 4
-lntemp: .word 4
+z:  .word 4
+
+xmin: .word 0
+xmax: .word 0
 
 .globl main			# leave this here for the moment
 .text			
 
 main:
-    # Print Prompt
-    la		$a0, n_prompt
+    # Print N Prompt
+    la  $a0, n_prompt
     jal prompt
 
     # Read N
-    jal read_float
-    mov.s $f12, $f0  # set read float as arg
+    jal read_int
+    move $t0, $v0   # t0 = n
 
-    # Execute Function
+    # Print xmin Prompt
+    la  $a0, xmin_prompt
+    jal prompt
+
+    # Read xmin
+    jal read_float
+    mov.s $f2, $f0  # f2 = xmin
+    # TODO store xmin
+
+    # Print xmax Prompt
+    la  $a0, xmax_prompt
+    jal prompt
+
+    # Read xmax
+    jal read_float
+    mov.s $f3, $f0  # f3 = xmax
+    # TODO store xmax
+
+    # Check Input
+    c.le.s $f3, $f2 # if xmin >= xmax finish
+    bc1t fin
+
+    # Calculate equidistance
+    sub.s $f4, $f3, $f2
+    div.s $f4, $f4, $t0 # f4 = (xmax - xmin) / n
+
+    add.s $f5, $0, $f2  # x = f5 = xmin
+
+loop:
+    c.lt.s $f5, $f3     # while (x < xmax)
+    bc1f end
+    
+    # store x
+
+    # y = exp(x)
+    mov.s $f12, $f5
+    jal e
+    # store y
+
+    # z = ln(y)
+    mov.s $f12, $f0
     jal ln
+    # store z
+    
+    add.s $f5, $f5, $f4 # x += dist
+    j loop
+
+end:
+
+    # print y's and z's
+
+
 
     # Store Result
     s.s $f0, z
@@ -34,8 +86,10 @@ main:
     mov.s $f12, $f0    # move $f0 to $f12
     jal print_float
 
+fin:
     # Prompt if Done
     jal prompt_redo
+
 
 
 #########       ln        #########
@@ -62,24 +116,17 @@ loop_ln:
 
 ret_ln:
     # stash b TODO nicer with store word
-    la $s0, btemp # dynamic memory address
-    s.s $f9, 0($s0)
-    #mov.s $f9, $f2
+    mov.s $f9, $f2
 
 
     move $t0, $ra  # stash stack pointer
     mov.s $f12, $f1     # set arg = a
-    jal ln0             # y = ln0(a)
-    la $s1, lntemp
-    s.s $f0, 0($s1)
-    #mov.s $f11, $f0     # temp = ln0(a)
+    jal ln0
+    mov.s $f11, $f0     # temp = ln0(a)
 
-    li.s $f12, 2.0      # set arg = 2
-    jal ln0             # f0 = ln0(2)
+    li.s $f12, 2.0     # set arg = 2
+    jal ln0             # f0 = ln0(2)    
 
-    # restore btemp and lntemp
-    l.s $f9, 0($s0)
-    l.s $f11, 0($s1)
     mul.s $f0, $f9, $f0     # f0 = b * ln0(2)
     add.s $f0, $f11, $f0     # return = ln0(a) + b * ln0(2)
 

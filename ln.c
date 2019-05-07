@@ -19,7 +19,7 @@ int main() {
  * param: xmax  upper bound for values
  */
 void main_eq(unsigned int n, float xmin, float xmax) {
-    if(xmin > xmax) {
+    if(xmin >= xmax) {
         return;
     }
 
@@ -27,6 +27,7 @@ void main_eq(unsigned int n, float xmin, float xmax) {
     float x = xmin;
     printf("x \t\ty \t\tz \n");
     while(x < xmax) {
+        // TODO store in array?
         printf("%f \t", x);
         float y = /*my*/exp(x);
         printf("%f \t", y);
