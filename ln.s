@@ -41,12 +41,12 @@ main:
 #########       ln        #########
 
 # arg:          $f12 = x
-# internal:     $f1 = a, $f2 / $f9 = b
+# internal:     $f1 = a, $f2 = b
 # return:       $f0 = ln0(0) + b * ln0(2)
 
 ln:
-    li.s $f2, 0.0           # b = 0
     mov.s $f1, $f12         # a = x
+    li.s $f2, 0.0           # b = 0
 
     li.s $f3, 1.0
     li.s $f4, 2.0
@@ -61,29 +61,27 @@ loop_ln:
     j loop_ln
 
 ret_ln:
-    # stash b TODO nicer with store word
-    la $s0, btemp # dynamic memory address
-    s.s $f9, 0($s0)
-    #mov.s $f9, $f2
+    addi $sp, $sp, -12
+    sw $ra, 0($sp)     # store return address
+    s.s $f2, 4($sp)    # store b
 
-
-    move $t0, $ra  # stash stack pointer
     mov.s $f12, $f1     # set arg = a
     jal ln0             # y = ln0(a)
     la $s1, lntemp
-    s.s $f0, 0($s1)
-    #mov.s $f11, $f0     # temp = ln0(a)
+    s.s $f0, 8($sp)     # store ln0(a)
 
     li.s $f12, 2.0      # set arg = 2
     jal ln0             # f0 = ln0(2)
 
-    # restore btemp and lntemp
-    l.s $f9, 0($s0)
-    l.s $f11, 0($s1)
-    mul.s $f0, $f9, $f0     # f0 = b * ln0(2)
-    add.s $f0, $f11, $f0     # return = ln0(a) + b * ln0(2)
+    # restore values
+    lw $ra, 0($sp)
+    l.s $f2, 4($sp)
+    l.s $f5, 8($sp)         # f5 = ln0(a)
 
-    jr $t0
+    mul.s $f0, $f2, $f0     # f0 = b * ln0(2)
+    add.s $f0, $f5, $f0     # return = ln0(a) + b * ln0(2)
+
+    jr  $ra
 
 
 #########       ln0         #########
