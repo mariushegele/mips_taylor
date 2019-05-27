@@ -8,9 +8,7 @@ newline: .asciiz "\n"
 
 .align 2
 
-z: .word 4
-btemp: .word 4
-lntemp: .word 4
+constK: .float 1000.0
 
 .globl main			# leave this here for the moment
 .text			
@@ -27,11 +25,8 @@ main:
     # Execute Function
     jal ln
 
-    # Store Result
-    s.s $f0, z
-
     # Print Function Result
-    mov.s $f12, $f0    # move $f0 to $f12
+    mov.s $f12, $f0
     jal print_float
 
     # Prompt if Done
@@ -67,7 +62,6 @@ ret_ln:
 
     mov.s $f12, $f1     # set arg = a
     jal ln0             # y = ln0(a)
-    la $s1, lntemp
     s.s $f0, 8($sp)     # store ln0(a)
 
     li.s $f12, 2.0      # set arg = 2
@@ -81,6 +75,8 @@ ret_ln:
     mul.s $f0, $f2, $f0     # f0 = b * ln0(2)
     add.s $f0, $f5, $f0     # return = ln0(a) + b * ln0(2)
 
+    addi $sp, $sp, 12
+
     jr  $ra
 
 
@@ -92,19 +88,19 @@ ret_ln:
 # return:       $f0 = sum
 
 ln0:
-    li.s $f3, 10000.0             # K = 100
+    l.s $f3, constK             # K = 100
 
     li.s $f5, 1.0               # f5 = 1.0
     sub.s $f1, $f12, $f5        # el = x - 1.0
     
-    li.s $f6, 0.0             # $f6 = 0
+    li.s $f6, 0.0               # $f6 = 0
     add.s $f0, $f1, $f6         # sum = el
 
     li.s $f2, 2.0               # float i = 2
 
 loop_ln0: 
     c.lt.s $f2, $f3             # c = (i < K)
-    bc1f ret_ln0                  # if c return
+    bc1f ret_ln0                # if c return
     
     sub.s $f7, $f2, $f5         # f7 = i - 1
     mul.s $f1, $f1, $f7         # el = el * (i-1)

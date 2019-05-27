@@ -6,6 +6,10 @@ xmin_prompt: .asciiz "Enter x_min: "
 xmax_prompt: .asciiz "Enter x_max: "
 done_prompt: .asciiz " Done [0 = Yes, 1 = No]: "
 newline: .asciiz "\n"
+.align 2
+tab: .asciiz "\t"
+.align 2
+header: .asciiz "x\t\te(x)\t\tln(e(x))\n"
 
 .align 2
 
@@ -17,7 +21,16 @@ xmax: .word 0
 .globl main			# leave this here for the moment
 .text			
 
+#########       main         #########
+
+# internal:     $t0 = n = 0($sp), $f2 = xmin = 4($sp), $f3 = xmax = 8($sp), 
+#               $f4 = dist = 12($sp), $f5 = x = 16($sp), e(x) = 20($sp)
+# return:       $f0 = sum
+
 main:
+    # Store intermediate values on stack -> reserve space
+    addi $sp, $sp, -24
+
     # Print N Prompt
     la  $a0, n_prompt
     jal prompt
@@ -25,6 +38,8 @@ main:
     # Read N
     jal read_int
     move $t0, $v0   # t0 = n
+    sw $t0, 0($sp)
+
 
     # Print xmin Prompt
     la  $a0, xmin_prompt
@@ -33,7 +48,7 @@ main:
     # Read xmin
     jal read_float
     mov.s $f2, $f0  # f2 = xmin
-    # TODO store xmin
+    s.s $f2, 4($sp) # store xmin
 
     # Print xmax Prompt
     la  $a0, xmax_prompt
@@ -42,51 +57,66 @@ main:
     # Read xmax
     jal read_float
     mov.s $f3, $f0  # f3 = xmax
-    # TODO store xmax
+    s.s $f3, 8($sp) # store xmax
 
     # Check Input
-    c.le.s $f3, $f2 # if xmin >= xmax finish
-    bc1t fin
+    c.le.s $f3, $f2 # if xmin >= xmax (error) -> prompt redo
+    bc1t end
+
+    # Print Table Headers: x \t e(x) \t ln(e(x))
+    la $a0, header	# print the new line character to force a carriage return 
+	li $v0, 4		# on the console
+	syscall
 
     # Calculate equidistance
     sub.s $f4, $f3, $f2
-    div.s $f4, $f4, $t0 # f4 = (xmax - xmin) / n
 
-    add.s $f5, $0, $f2  # x = f5 = xmin
+    l.s $f0, 0($sp)       # restore n
+    cvt.d.s $f0, $f1 
+    div.s $f4, $f4, $f0  # f4 = (xmax - xmin) / n
+    s.s $f4, 12($sp)     # store dist
+
+    mov.s $f5, $f2      # x = f5 = xmin
+    s.s $f5, 16($sp)    # store x
 
 loop:
+    mov.s $f12, $f5
+    jal printf_float_oneline
+
+    l.s $f3, 8($sp)     # restore xmax
+    l.s $f5, 16($sp)    # restore x
     c.lt.s $f5, $f3     # while (x < xmax)
     bc1f end
-    
-    # store x
 
     # y = exp(x)
     mov.s $f12, $f5
     jal e
-    # store y
+    s.s $f12, 20($sp)   # store e(x)
+    # print e(x)
+    mov.s $f12, $f0
+    jal printf_float_oneline
+
 
     # z = ln(y)
-    mov.s $f12, $f0
+    l.s $f0, 20($sp)   # restore e(x)
     jal ln
-    # store z
+    # print ln(e(x))
+    mov.s $f12, $f0
+    jal printf_float_oneline
     
+    l.s $f4, 12($sp)     # restore dist
+    l.s $f5, 16($sp)    # restore x
     add.s $f5, $f5, $f4 # x += dist
+
+    la $a0, newline	# print the new line character
+	li $v0, 4
+	syscall
+
     j loop
 
 end:
+    addi $sp, $sp, 24
 
-    # print y's and z's
-
-
-
-    # Store Result
-    s.s $f0, z
-
-    # Print Function Result
-    mov.s $f12, $f0    # move $f0 to $f12
-    jal print_float
-
-fin:
     # Prompt if Done
     jal prompt_redo
 
@@ -95,12 +125,12 @@ fin:
 #########       ln        #########
 
 # arg:          $f12 = x
-# internal:     $f1 = a, $f2 / $f9 = b
+# internal:     $f1 = a, $f2 = b
 # return:       $f0 = ln0(0) + b * ln0(2)
 
 ln:
-    li.s $f2, 0.0           # b = 0
     mov.s $f1, $f12         # a = x
+    li.s $f2, 0.0           # b = 0
 
     li.s $f3, 1.0
     li.s $f4, 2.0
@@ -115,22 +145,29 @@ loop_ln:
     j loop_ln
 
 ret_ln:
-    # stash b TODO nicer with store word
-    mov.s $f9, $f2
+    addi $sp, $sp, -12
+    sw $ra, 0($sp)     # store return address
+    s.s $f2, 4($sp)    # store b
 
-
-    move $t0, $ra  # stash stack pointer
     mov.s $f12, $f1     # set arg = a
-    jal ln0
-    mov.s $f11, $f0     # temp = ln0(a)
+    jal ln0             # y = ln0(a)
+    s.s $f0, 8($sp)     # store ln0(a)
 
-    li.s $f12, 2.0     # set arg = 2
-    jal ln0             # f0 = ln0(2)    
+    li.s $f12, 2.0      # set arg = 2
+    jal ln0             # f0 = ln0(2)
 
-    mul.s $f0, $f9, $f0     # f0 = b * ln0(2)
-    add.s $f0, $f11, $f0     # return = ln0(a) + b * ln0(2)
+    # restore values
+    lw $ra, 0($sp)
+    l.s $f2, 4($sp)
+    l.s $f5, 8($sp)         # f5 = ln0(a)
 
-    jr $t0
+    mul.s $f0, $f2, $f0     # f0 = b * ln0(2)
+    add.s $f0, $f5, $f0     # return = ln0(a) + b * ln0(2)
+
+    addi $sp, $sp, 12       # free up stack space
+
+
+    jr  $ra
 
 
 #########       ln0         #########
@@ -141,19 +178,19 @@ ret_ln:
 # return:       $f0 = sum
 
 ln0:
-    li.s $f3, 10000.0             # K = 100
+    l.s $f3, constK             # K = 100
 
     li.s $f5, 1.0               # f5 = 1.0
     sub.s $f1, $f12, $f5        # el = x - 1.0
     
-    li.s $f6, 0.0             # $f6 = 0
+    li.s $f6, 0.0               # $f6 = 0
     add.s $f0, $f1, $f6         # sum = el
 
     li.s $f2, 2.0               # float i = 2
 
 loop_ln0: 
     c.lt.s $f2, $f3             # c = (i < K)
-    bc1f ret_ln0                  # if c return
+    bc1f ret_ln0                # if c return
     
     sub.s $f7, $f2, $f5         # f7 = i - 1
     mul.s $f1, $f1, $f7         # el = el * (i-1)
@@ -188,11 +225,18 @@ read_int:
     syscall
     jr $ra
 
-print_float:
-    li      $v0, 4
-    la      $a0, res
+printf_float_oneline:
+    li      $v0, 2 # print float in $f12
     syscall
 
+	la $a0, tab	    # print the tab character
+	li $v0, 4		# on the console
+	syscall
+
+    jr $ra
+
+
+print_float:
     li      $v0, 2 # print float in $f12
     syscall
 
