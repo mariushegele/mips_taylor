@@ -5,13 +5,17 @@ n_prompt: .asciiz "Enter N: "
 xmin_prompt: .asciiz "Enter x_min: "
 xmax_prompt: .asciiz "Enter x_max: "
 done_prompt: .asciiz " Done [0 = Yes, 1 = No]: "
+
 newline: .asciiz "\n"
-.align 2
 tab: .asciiz "\t"
-.align 2
 header: .asciiz "x\t\te(x)\t\tln(e(x))\n"
 
 .align 2
+
+constK: .float 1000.0
+const0: .float 0.0
+const10: .float 10.0
+
 
 z:  .word 4
 
@@ -25,7 +29,7 @@ xmax: .word 0
 
 # internal:     $t0 = n = 0($sp), $f2 = xmin = 4($sp), $f3 = xmax = 8($sp), 
 #               $f4 = dist = 12($sp), $f5 = x = 16($sp), e(x) = 20($sp)
-# return:       $f0 = sum
+# constants:    $f6 = 0
 
 main:
     # Store intermediate values on stack -> reserve space
@@ -69,10 +73,12 @@ main:
 	syscall
 
     # Calculate equidistance
-    sub.s $f4, $f3, $f2
 
-    l.s $f0, 0($sp)       # restore n
-    cvt.d.s $f0, $f1 
+    lw $t0, 0($sp)       # restore n
+    mtc1 $t0, $f0
+    cvt.s.w $f0, $f0
+
+    sub.s $f4, $f3, $f2  # xmax - xmin
     div.s $f4, $f4, $f0  # f4 = (xmax - xmin) / n
     s.s $f4, 12($sp)     # store dist
 
@@ -80,17 +86,19 @@ main:
     s.s $f5, 16($sp)    # store x
 
 loop:
-    mov.s $f12, $f5
-    jal printf_float_oneline
-
     l.s $f3, 8($sp)     # restore xmax
     l.s $f5, 16($sp)    # restore x
-    c.lt.s $f5, $f3     # while (x < xmax)
+    c.le.s $f5, $f3     # while (x < xmax)
     bc1f end
+
+    l.s $f6, const0
+    add.s $f12, $f6, $f5    # copy x into argument
+    jal printf_float_oneline
 
     # y = exp(x)
     mov.s $f12, $f5
-    jal e
+    #jal e
+    jal ln
     s.s $f12, 20($sp)   # store e(x)
     # print e(x)
     mov.s $f12, $f0
@@ -107,6 +115,7 @@ loop:
     l.s $f4, 12($sp)     # restore dist
     l.s $f5, 16($sp)    # restore x
     add.s $f5, $f5, $f4 # x += dist
+    s.s $f5, 16($sp)    # store x
 
     la $a0, newline	# print the new line character
 	li $v0, 4
@@ -115,7 +124,11 @@ loop:
     j loop
 
 end:
-    addi $sp, $sp, 24
+    la $a0, newline # print new line
+    li $v0, 4
+    syscall
+    
+    addi $sp, $sp, 24   # free up stack space
 
     # Prompt if Done
     jal prompt_redo
@@ -228,7 +241,16 @@ read_int:
 printf_float_oneline:
     li      $v0, 2 # print float in $f12
     syscall
+    
+    l.s $f11, const10
+    c.lt.s $f12, $f11
+    bc1f only_one_tab
 
+    la $a0, tab	    # print the tab character
+	li $v0, 4		# on the console
+	syscall
+
+only_one_tab:
 	la $a0, tab	    # print the tab character
 	li $v0, 4		# on the console
 	syscall

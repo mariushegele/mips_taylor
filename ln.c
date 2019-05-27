@@ -26,8 +26,8 @@ void main_eq(unsigned int n, float xmin, float xmax) {
     float dist = (xmax - xmin) / n;
     float x = xmin;
     printf("x \t\ty \t\tz \n");
-    while(x < xmax) {
-        // TODO store in array?
+    while(x <= xmax) {
+
         printf("%f \t", x);
         float y = /*my*/exp(x);
         printf("%f \t", y);
@@ -39,6 +39,9 @@ void main_eq(unsigned int n, float xmin, float xmax) {
     }
 }
 
+/**
+ *  converges for [0, 2] 
+ */
 float ln0(float x) {
 
     const unsigned int K = 10000;
