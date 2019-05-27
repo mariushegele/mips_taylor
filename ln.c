@@ -1,16 +1,45 @@
 #include <stdio.h>
 #include <math.h>
 
+float optimize_ln();
 void main_eq(unsigned int, float, float);
-float ln(float);
-float ln0(float);
+float ln(float, unsigned int);
+float ln0(float, unsigned int);
 float myexp(float);
-
 
 int main() {
     main_eq(20, -5.0, 5.0);
+    //optimize_ln();
     return 1;
 
+}
+
+/**
+ * Determination of an optimal number of terms seems to be unnecessary with ln()
+ * -> converges towards 0 difference with the correct values
+ */
+float optimize_ln() {
+    int K = 100000;
+    float mindiff = 0.0;
+    int optK = 1;
+    for(int k = 1; k < K; k++) {
+        //printf("%d ", k);
+        float diffsum = 0.0;
+        for(float x = 1.0; x < 100; x += 20) {
+            float mine = ln(x, k);
+            float real = logf(x);
+            diffsum += fabs(mine - real);
+        }
+
+        if(diffsum < mindiff || mindiff == 0.0) {
+            mindiff = diffsum;
+            optK = k;
+        }
+    }
+
+    printf("\nK: %d diff %f\n", optK, mindiff);
+
+    return optK;
 }
 
 /**
@@ -31,7 +60,7 @@ void main_eq(unsigned int n, float xmin, float xmax) {
         printf("%f \t", x);
         float y = /*my*/exp(x);
         printf("%f \t", y);
-        float z = ln(y);
+        float z = ln(y, 10000);
         printf("%f \t", z);
 
         printf("\n");
@@ -42,13 +71,10 @@ void main_eq(unsigned int n, float xmin, float xmax) {
 /**
  *  converges for [0, 2] 
  */
-float ln0(float x) {
-
-    const unsigned int K = 10000;
-
+float ln0(float x, unsigned int terms) {
     float el = (x-1); // the current element value
     float sum = el;
-    for(unsigned int i=2; i<K; i++) {
+    for(unsigned int i=2; i<terms; i++) {
         // current numerator: previous num. * (1-x)
         // current denonimator: previous denum + 1
         // => previous element * (i-1) * (1-x) / i
@@ -66,7 +92,7 @@ float ln0(float x) {
  *      x = a * 2^b, and calculate
  *      ln(x) = ln(a) + b * ln(2)
  */
-float ln(float x) {
+float ln(float x, unsigned int terms) {
     float a = x;
     int b = 0;
     while(a > 2) {
@@ -74,7 +100,7 @@ float ln(float x) {
         b++;
     } // => a == x / 2^b
 
-    return ln0(a) + b * ln0(2);
+    return ln0(a, terms) + b * ln0(2, terms);
 }
 
 
