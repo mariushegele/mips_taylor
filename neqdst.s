@@ -6,6 +6,7 @@ xmin_prompt: .asciiz "Enter x_min: "
 xmax_prompt: .asciiz "Enter x_max: "
 done_prompt: .asciiz " Done [0 = Yes, 1 = No]: "
 newline: .asciiz "\n"
+zero: .float 0.0
 
 .align 2
 
@@ -18,6 +19,8 @@ xmax: .word 0
 .text			
 
 main:
+    lwc1 $f3, zero # initialize global zero
+
     # Print N Prompt
     la  $a0, n_prompt
     jal prompt
@@ -62,7 +65,8 @@ loop:
 
     # y = exp(x)
     mov.s $f12, $f5
-    jal e
+    li $a1, 6
+    jal exp
     # store y
 
     # z = ln(y)
@@ -170,6 +174,94 @@ loop_ln0:
    
 ret_ln0:
     jr $ra                      # else return
+
+
+
+
+#########      exp       #########
+
+# arg:          $f12 = x //TODO: $a1 = n
+# internal:     $f1 = a, $f2 = result of power
+# return:       $f0 = 
+
+exp:
+    li.s $f1, 0.0           # result = 0.0
+    li $t0, 0               # i = 0
+    move $t3, $ra  # stash stack pointer
+
+exp_loop:
+
+    bge $t0, $a1, exp_ret # if i>=n jump out of loop
+
+    move $a2, $t0 # exponent of power in a2
+    jal power
+
+    add.s $f2, $f0, $f3 # result of power in f2
+    
+    move $a2, $t0 # parameter of fact = 1
+    jal fact
+
+    mtc1 $v0, $f0
+    cvt.s.w $f0, $f0
+
+    div.s $f2, $f2, $f0 # power/fact
+
+    add.s $f1, $f1, $f2 # result += power/fact
+    addi $t0, $t0, 1
+    j exp_loop
+
+exp_ret:
+    add.s $f0, $f1, $f3
+    jr $t3
+
+
+#########       power         #########
+
+# args:         $a2 = exponent, $f12 = x
+# return:       $f0 = power x^exponent
+
+power:
+    li.s $f2, 1.0
+    move $t4, $ra  # stash stack pointer
+
+power_loop:
+
+    li $t1, 0
+    ble $a2, $t1, power_ret  # branch if exponent <= 0
+    mul.s $f2, $f2, $f12
+    addi $a2, $a2, -1
+
+    j power_loop
+
+power_ret:
+    add.s $f0, $f2, $f3 # copy f2 to f0
+    jr $t4
+
+
+#########       fact         #########
+
+# args:         $a2 = x
+# return:       $v0 = fact(i)
+
+fact:
+    li $t2, 1 # i
+    move $t5, $ra  # stash stack pointer
+
+    li $v0, 1 # result
+
+fact_loop:
+
+    bgt $t2, $a2, fact_ret  # branch if i > parameter
+
+    mul $v0, $v0, $t2
+    addi $t2, $t2, 1
+
+    j fact_loop
+
+fact_ret:
+    jr $t5
+
+
 
 
 ######### Helper I/O functions  #########
