@@ -14,6 +14,7 @@ header: .asciiz "x\t\te(x)\t\tln(e(x))\n"
 
 constK: .float 1000.0
 const0: .float 0.0
+const1: .float 1.0
 const10: .float 10.0
 
 
@@ -79,26 +80,23 @@ main:
     cvt.s.w $f0, $f0
 
     sub.s $f4, $f3, $f2  # xmax - xmin
-    div.s $f4, $f4, $f0  # f4 = (xmax - xmin) / n
+    lwc1 $f5, const1
+    add.s $f4, $f4, $f5  # xmax - xmin + 1
+    div.s $f4, $f4, $f0  # f4 = (xmax - xmin + 1) / n
     s.s $f4, 12($sp)     # store dist
 
     mov.s $f5, $f2      # x = f5 = xmin
     s.s $f5, 16($sp)    # store x
 
 loop:
-    l.s $f3, 8($sp)     # restore xmax
-    l.s $f5, 16($sp)    # restore x
-    c.le.s $f5, $f3     # while (x < xmax)
-    bc1f end
-
     l.s $f6, const0
     add.s $f12, $f6, $f5    # copy x into argument
     jal printf_float_oneline
 
     # y = exp(x)
     mov.s $f12, $f5
-    #jal e
-    jal ln
+    li $a1, 12           # set number of terms for e(x) to 10 TODO: determine optimally
+    jal exp
     s.s $f12, 20($sp)   # store e(x)
     # print e(x)
     mov.s $f12, $f0
@@ -121,7 +119,11 @@ loop:
 	li $v0, 4
 	syscall
 
-    j loop
+    l.s $f3, 8($sp)     # restore xmax
+    l.s $f5, 16($sp)    # restore x
+    c.le.s $f5, $f3     # while (x <= xmax)
+    bc1t loop
+    
 
 end:
     la $a0, newline # print new line
@@ -220,6 +222,91 @@ loop_ln0:
    
 ret_ln0:
     jr $ra                      # else return
+
+
+
+
+#########      exp       #########
+
+# arg:          $f12 = x //TODO: $a1 = n
+# internal:     $f1 = a, $f2 = result of power
+# return:       $f0 = e(x)
+
+exp:
+    li.s $f1, 0.0           # result = 0.0
+    li $t0, 0               # i = 0
+    move $t3, $ra  # stash stack pointer
+
+exp_loop:
+
+    bge $t0, $a1, exp_ret # if i>=n jump out of loop
+
+    move $a2, $t0 # exponent of power in a2
+    jal power
+
+    lwc1 $f3, const0 # load zero
+    add.s $f2, $f0, $f3 # result of power in f2
+    
+    move $a2, $t0 # parameter of fact = 1
+    jal fact
+
+    mtc1 $v0, $f0
+    cvt.s.w $f0, $f0
+
+    div.s $f2, $f2, $f0 # power/fact
+
+    add.s $f1, $f1, $f2 # result += power/fact
+    addi $t0, $t0, 1
+    j exp_loop
+
+exp_ret:
+    add.s $f0, $f1, $f3
+    jr $t3
+
+
+#########       power         #########
+
+# args:         $a2 = exponent, $f12 = x
+# return:       $f0 = power x^exponent
+
+power:
+    li.s $f0, 1.0
+
+power_loop:
+
+    li $t1, 0
+    ble $a2, $t1, power_ret  # branch if exponent <= 0
+    mul.s $f0, $f0, $f12
+    addi $a2, $a2, -1
+
+    j power_loop
+
+power_ret:
+    jr $ra
+
+
+#########       fact         #########
+
+# args:         $a2 = x
+# return:       $v0 = fact(i)
+
+fact:
+    li $t2, 1 # i
+    li $v0, 1 # result
+
+fact_loop:
+
+    bgt $t2, $a2, fact_ret  # branch if i > parameter
+
+    mul $v0, $v0, $t2
+    addi $t2, $t2, 1
+
+    j fact_loop
+
+fact_ret:
+    jr $ra
+
+
 
 
 ######### Helper I/O functions  #########

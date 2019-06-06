@@ -8,38 +8,9 @@ float ln0(float, unsigned int);
 float myexp(float);
 
 int main() {
-    main_eq(20, -5.0, 5.0);
-    //optimize_ln();
+    main_eq(1, 1.0, 1.0);
     return 1;
 
-}
-
-/**
- * Determination of an optimal number of terms seems to be unnecessary with ln()
- * -> converges towards 0 difference with the correct values
- */
-float optimize_ln() {
-    int K = 100000;
-    float mindiff = 0.0;
-    int optK = 1;
-    for(int k = 1; k < K; k++) {
-        //printf("%d ", k);
-        float diffsum = 0.0;
-        for(float x = 1.0; x < 100; x += 20) {
-            float mine = ln(x, k);
-            float real = logf(x);
-            diffsum += fabs(mine - real);
-        }
-
-        if(diffsum < mindiff || mindiff == 0.0) {
-            mindiff = diffsum;
-            optK = k;
-        }
-    }
-
-    printf("\nK: %d diff %f\n", optK, mindiff);
-
-    return optK;
 }
 
 /**
@@ -52,7 +23,7 @@ void main_eq(unsigned int n, float xmin, float xmax) {
         return;
     }
 
-    float dist = (xmax - xmin) / n;
+    float dist = (xmax - xmin + 1) / n;
     float x = xmin;
     printf("x \t\ty \t\tz \n");
     while(x <= xmax) {
