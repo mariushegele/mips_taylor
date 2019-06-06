@@ -8,9 +8,7 @@ newline: .asciiz "\n"
 
 .align 2
 
-z: .word 4
-btemp: .word 4
-lntemp: .word 4
+constK: .float 1000.0
 
 .globl main			# leave this here for the moment
 .text			
@@ -27,11 +25,8 @@ main:
     # Execute Function
     jal ln
 
-    # Store Result
-    s.s $f0, z
-
     # Print Function Result
-    mov.s $f12, $f0    # move $f0 to $f12
+    mov.s $f12, $f0
     jal print_float
 
     # Prompt if Done
@@ -41,12 +36,12 @@ main:
 #########       ln        #########
 
 # arg:          $f12 = x
-# internal:     $f1 = a, $f2 / $f9 = b
+# internal:     $f1 = a, $f2 = b
 # return:       $f0 = ln0(0) + b * ln0(2)
 
 ln:
-    li.s $f2, 0.0           # b = 0
     mov.s $f1, $f12         # a = x
+    li.s $f2, 0.0           # b = 0
 
     li.s $f3, 1.0
     li.s $f4, 2.0
@@ -61,29 +56,28 @@ loop_ln:
     j loop_ln
 
 ret_ln:
-    # stash b TODO nicer with store word
-    la $s0, btemp # dynamic memory address
-    s.s $f9, 0($s0)
-    #mov.s $f9, $f2
+    addi $sp, $sp, -12
+    sw $ra, 0($sp)     # store return address
+    s.s $f2, 4($sp)    # store b
 
-
-    move $t0, $ra  # stash stack pointer
     mov.s $f12, $f1     # set arg = a
     jal ln0             # y = ln0(a)
-    la $s1, lntemp
-    s.s $f0, 0($s1)
-    #mov.s $f11, $f0     # temp = ln0(a)
+    s.s $f0, 8($sp)     # store ln0(a)
 
     li.s $f12, 2.0      # set arg = 2
     jal ln0             # f0 = ln0(2)
 
-    # restore btemp and lntemp
-    l.s $f9, 0($s0)
-    l.s $f11, 0($s1)
-    mul.s $f0, $f9, $f0     # f0 = b * ln0(2)
-    add.s $f0, $f11, $f0     # return = ln0(a) + b * ln0(2)
+    # restore values
+    lw $ra, 0($sp)
+    l.s $f2, 4($sp)
+    l.s $f5, 8($sp)         # f5 = ln0(a)
 
-    jr $t0
+    mul.s $f0, $f2, $f0     # f0 = b * ln0(2)
+    add.s $f0, $f5, $f0     # return = ln0(a) + b * ln0(2)
+
+    addi $sp, $sp, 12
+
+    jr  $ra
 
 
 #########       ln0         #########
@@ -94,19 +88,19 @@ ret_ln:
 # return:       $f0 = sum
 
 ln0:
-    li.s $f3, 10000.0             # K = 100
+    l.s $f3, constK             # K = 100
 
     li.s $f5, 1.0               # f5 = 1.0
     sub.s $f1, $f12, $f5        # el = x - 1.0
     
-    li.s $f6, 0.0             # $f6 = 0
+    li.s $f6, 0.0               # $f6 = 0
     add.s $f0, $f1, $f6         # sum = el
 
     li.s $f2, 2.0               # float i = 2
 
 loop_ln0: 
     c.lt.s $f2, $f3             # c = (i < K)
-    bc1f ret_ln0                  # if c return
+    bc1f ret_ln0                # if c return
     
     sub.s $f7, $f2, $f5         # f7 = i - 1
     mul.s $f1, $f1, $f7         # el = el * (i-1)

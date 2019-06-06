@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <math.h>
 
+float optimize_ln();
 void main_eq(unsigned int, float, float);
-float ln(float);
-float ln0(float);
+float ln(float, unsigned int);
+float ln0(float, unsigned int);
 float myexp(float);
 
-
 int main() {
-    main_eq(20, -5.0, 5.0);
+    main_eq(1, 1.0, 1.0);
     return 1;
 
 }
@@ -23,15 +23,15 @@ void main_eq(unsigned int n, float xmin, float xmax) {
         return;
     }
 
-    float dist = (xmax - xmin) / n;
+    float dist = (xmax - xmin + 1) / n;
     float x = xmin;
     printf("x \t\ty \t\tz \n");
-    while(x < xmax) {
-        // TODO store in array?
+    while(x <= xmax) {
+
         printf("%f \t", x);
         float y = /*my*/exp(x);
         printf("%f \t", y);
-        float z = ln(y);
+        float z = ln(y, 10000);
         printf("%f \t", z);
 
         printf("\n");
@@ -39,13 +39,13 @@ void main_eq(unsigned int n, float xmin, float xmax) {
     }
 }
 
-float ln0(float x) {
-
-    const unsigned int K = 10000;
-
+/**
+ *  converges for [0, 2] 
+ */
+float ln0(float x, unsigned int terms) {
     float el = (x-1); // the current element value
     float sum = el;
-    for(unsigned int i=2; i<K; i++) {
+    for(unsigned int i=2; i<terms; i++) {
         // current numerator: previous num. * (1-x)
         // current denonimator: previous denum + 1
         // => previous element * (i-1) * (1-x) / i
@@ -63,7 +63,7 @@ float ln0(float x) {
  *      x = a * 2^b, and calculate
  *      ln(x) = ln(a) + b * ln(2)
  */
-float ln(float x) {
+float ln(float x, unsigned int terms) {
     float a = x;
     int b = 0;
     while(a > 2) {
@@ -71,7 +71,7 @@ float ln(float x) {
         b++;
     } // => a == x / 2^b
 
-    return ln0(a) + b * ln0(2);
+    return ln0(a, terms) + b * ln0(2, terms);
 }
 
 
