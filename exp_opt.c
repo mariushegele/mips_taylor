@@ -8,7 +8,7 @@ float exponential(float, float);
 int main() {
 	float parameter = 15.0;
 	float iterations = getIterations(parameter);
-	printf("%d iterations\n", iterations);
+	printf("%f iterations\n", iterations);
 
 	float result = exponential(parameter, iterations);
 	printf("e(%f): %f\n", parameter, result);
