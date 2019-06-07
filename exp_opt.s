@@ -21,7 +21,6 @@ res: .asciiz "\nexp(x) = "
 done_prompt: .asciiz " Done [0 = Yes, 1 = No]: "
 newline: .asciiz "\n"
 space: .asciiz " "
-zero: .float 0.0
 
 .align 2
 
@@ -33,6 +32,8 @@ exptemp: .word 4
 .text			
 
 main:
+    li.s $f7, 0.0 # global zero
+    li.s $f8, 1.0 # global one
     ########## Print X-Prompt ###########
     la      $a0, x_prompt
     jal     print
@@ -43,9 +44,20 @@ main:
     mov.s   $f12, $f0  # set read float as arg
     #######################################
 
-    # TODO: ask for n(iterations)
-    li $a1, 10
-    lwc1 $f6, zero # global zero
+    li.s $f13, 34.0   # possible iterations
+    li.s $f2, 14.0    # $f2 = 14
+    c.lt.s $f12, $f2  # parameter < 14
+    bc1t parameter_set  # jump if (parameter less than 14)
+
+    li.s $f3, 10.0    # $f3 = 10
+    add.s $f13, $f12, $f3   # $f13 = parameter + 10
+
+    li.s $f3, 400.0   # $f3 = 400
+    div.s $f13, $f3, $f13   # $f13 = 400 / $f13
+
+    add.s $f13, $f13, $f2
+
+parameter_set:
 
     # Execute Function
     jal exp
@@ -55,13 +67,13 @@ main:
     #jal print
     #################################################
 
-
     # Store Result
     s.s $f0, z
 
-    # Print Function Result
+    ########## Print Function Result ###########
     mov.s $f12, $f0    # move $f0 to $f12
     jal print_result
+    ############################################
 
     # Prompt if Done
     jal prompt_redo
@@ -69,23 +81,25 @@ main:
 
 #########      exp       #########
 
-# arg:          $f12 = x // TODO: $a1 = n
-# internal:     $f1 = result, $f2 = power, $f3 = factorial, $f4 = i in float, $f5 = 'part'(power/fact)
-#               $f13 = saveplace for $f12 (for prints)
-# return:       $f0 = 
+# arg:          $f12 = x, $f13 = n
+# internal:     $f0 = result, $f2 = power, $f3 = factorial, $f4 = i, $f5 = 'part'(power/fact)
+#               $f6 = saveplace for $f12 (for prints), $f7 = zero, $f8 = 1.0
+# return:       $f0 = result
 
 exp:
-    li.s $f1, 0.0           # result = 0.0
+    li.s $f0, 0.0           # result = 0.0
     li.s $f2, 1.0           # power = 1.0
     li.s $f3, 1.0           # fact = 1.0
-    li $t0, 0               # i = 0
+    li.s $f4, 0.0             # i = 0
     move $t3, $ra           # stash stack pointer
 
     ########## Print initial x ###########
     #jal print_float
     ###################################
 exp_loop:
-    bge $t0, $a1, exp_ret # if i>=n jump out of loop
+    c.le.s $f13, $f4 # n<=i
+    bc1t exp_ret  # if n<=i jump out of loop
+
     
     ########## Print Exp-Loop-Print ###########
     #la      $a0, exploopprint
@@ -94,44 +108,43 @@ exp_loop:
 
 
     ########## Print Power ###########
-    #add.s $f13, $f12, $f6   # save $f12
-    #add.s $f12, $f2, $f6    # prepare $f2 to be printed
+    #add.s $f6, $f12, $f7   # save $f12
+    #add.s $f12, $f2, $f7    # prepare $f2 to be printed
     #jal print_float
-    #add.s $f12, $f13, $f6   # restore $f12
+    #add.s $f12, $f6, $f7   # restore $f12
     ###################################
 
     ########## Print x ###########
     #jal print_float
     ###################################
 
+    c.eq.s $f4, $f7 # ignore changes to factorial and power if i = 0
+    bc1t partcal  # jump if i = 0
 
-    beq $t0, $zero, partcal # ignore changes to factorial and power if i = 0
 
     mul.s $f2, $f2, $f12    # power = power * x
 
     ########## Print Power ###########
-    #add.s $f13, $f12, $f6  # print power
-    #add.s $f12, $f2, $f6
+    #add.s $f6, $f12, $f7  # print power
+    #add.s $f12, $f2, $f7
     #jal print_float
-    #add.s $f12, $f13, $f6
+    #add.s $f12, $f6, $f7
     ###################################
 
-    mtc1 $t0, $f4           # move i to a float register
-    cvt.s.w $f4, $f4        # convert i to a float for following operation
     mul.s $f3, $f3, $f4     # fact = fact * i
 
 partcal:
     div.s $f5, $f2, $f3 # power/fact
     
     ########## Print Part ###########
-    #add.s $f13, $f12, $f6  # print part
-    #add.s $f12, $f5, $f6 
+    #add.s $f6, $f12, $f7  # print part
+    #add.s $f12, $f5, $f7 
     #jal print_float
-    #add.s $f12, $f13, $f6
+    #add.s $f12, $f6, $f7
     ###################################
 
-    add.s $f1, $f1, $f5 # result += part
-    addi $t0, $t0, 1
+    add.s $f0, $f0, $f5 # result += part
+    add.s $f4, $f4, $f8    # i++
     j exp_loop
 
 exp_ret:
@@ -141,8 +154,7 @@ exp_ret:
     #jal print
     ###################################
 
-    add.s $f0, $f1, $f6
-    jr $t3
+    jr $t3 # result is in $f0
 
 
 ######### Helper I/O functions  #########
