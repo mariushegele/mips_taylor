@@ -42,17 +42,9 @@ main:
 
     # TODO: ask for n(iterations)
     li $a1, 6
-    lwc1 $f3, zero # global zero
 
     # Execute Function
     jal exp
-
-    # Print Prompt
-    la $a0, expafterprint
-    jal prompt
-
-    # Store Result
-    s.s $f0, z
 
     # Print Function Result
     mov.s $f12, $f0    # move $f0 to $f12
@@ -76,17 +68,9 @@ exp:
 exp_loop:
 
     bge $t0, $a1, exp_ret # if i>=n jump out of loop
-    
-    # Print Prompt
-    la $a0, exploopprint
-    jal prompt
 
     move $a2, $t0 # exponent of power in a2
     jal power
-
-    # Print Prompt
-    la $a0, powerafterprint
-    jal prompt
 
     add.s $f2, $f0, $f3 # result of power in f2
     
@@ -95,13 +79,9 @@ exp_loop:
 
     mtc1 $v0, $f0
     cvt.s.w $f0, $f0
-
     div.s $f2, $f2, $f0 # power/fact
-
-    # Print Prompt
-    la $a0, factafterprint
-    jal prompt
     
+    lwc1 $f3, zero # global zero
     add.s $f13, $f12, $f3  # print part
     add.s $f12, $f2, $f3 
     li $v0, 2 # print float in $f12

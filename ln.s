@@ -15,14 +15,14 @@ constK: .float 1000.0
 
 main:
     # Print Prompt
-    la		$a0, n_prompt
+    la	$a0, n_prompt
     jal prompt
 
-    # Read N
+    # Read x
     jal read_float
     mov.s $f12, $f0  # set read float as arg
 
-    # Execute Function
+    # Execute ln(x)
     jal ln
 
     # Print Function Result
@@ -75,7 +75,7 @@ ret_ln:
     mul.s $f0, $f2, $f0     # f0 = b * ln0(2)
     add.s $f0, $f5, $f0     # return = ln0(a) + b * ln0(2)
 
-    addi $sp, $sp, 12
+    addi $sp, $sp, 12       # free up stack space
 
     jr  $ra
 

@@ -1,3 +1,8 @@
-# Taylor approximations in MIPS assembly
+# Taylor approximations in MIPS Assembly
 
-exp(x), ln(x) and more
+$e^x$, $ln(x)$ and more
+
+
+### Instructions
+Run `make` to build all targets. `bin` contains all executables.
+

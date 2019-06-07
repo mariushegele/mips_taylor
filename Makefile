@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=
 DEPS=
 OUTPUT=bin
-TARGETS=ln #e
+TARGETS=ln exp exp_opt neqdst
 
 all: $(addprefix $(OUTPUT)/, $(TARGETS))
 

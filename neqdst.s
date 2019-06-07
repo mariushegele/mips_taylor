@@ -181,7 +181,6 @@ ret_ln:
 
     addi $sp, $sp, 12       # free up stack space
 
-
     jr  $ra
 
 

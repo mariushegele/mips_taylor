@@ -1,42 +1,17 @@
 #include <stdio.h>
 #include <math.h>
 
-float optimize_ln();
-void main_eq(unsigned int, float, float);
 float ln(float, unsigned int);
 float ln0(float, unsigned int);
-float myexp(float);
 
 int main() {
-    main_eq(1, 1.0, 1.0);
+    float x = 15.0;
+    int terms = 100;
+    
+    printf("ln(%f) = %f", x, ln(x, terms));
+    printf("error of %f", log(x) - ln(x, terms));
+    
     return 1;
-
-}
-
-/**
- * param: n     number of equidistant values
- * param: xmin  lower bound for values
- * param: xmax  upper bound for values
- */
-void main_eq(unsigned int n, float xmin, float xmax) {
-    if(xmin >= xmax) {
-        return;
-    }
-
-    float dist = (xmax - xmin + 1) / n;
-    float x = xmin;
-    printf("x \t\ty \t\tz \n");
-    while(x <= xmax) {
-
-        printf("%f \t", x);
-        float y = /*my*/exp(x);
-        printf("%f \t", y);
-        float z = ln(y, 10000);
-        printf("%f \t", z);
-
-        printf("\n");
-        x += dist;
-    }
 }
 
 /**
@@ -72,23 +47,4 @@ float ln(float x, unsigned int terms) {
     } // => a == x / 2^b
 
     return ln0(a, terms) + b * ln0(2, terms);
-}
-
-
-/* not working */
-float myexp(float x) {
-    const unsigned int K = 10000;
-
-    float sum = 0;
-    float enumerator = 1;
-    float denominator = 1;
-    int i = 1;
-    while(i < K) {
-        enumerator *= x;
-        denominator *= i;
-        sum += enumerator / denominator;
-        i++;
-    }
-
-    return sum;
 }

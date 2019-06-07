@@ -1,30 +1,41 @@
 #include <stdio.h>
 #include <math.h>
 
-int fact (int parameter);
+int getIterations(float);
+float fact (int parameter);
 float power(float base, int exponent);
 float exponential(float x, int n);
 
 int main() {
-	float parameter = 1.0;
-	int iterations = 6;
+	float parameter = 15.0;
+	int iterations = getIterations(parameter);
 	float result = exponential(parameter, iterations);
 	printf("%i iterations\n", iterations);
-	printf("Result: %lf\n", result);
-	printf("Real result: %lf", exp(parameter));
+	printf("e(%f) = %f\n", parameter, result);
+	printf("error of %f\n", exp(parameter) - result);
 	
 	return 1;
 }
 
-float exponential(float x, int n) {
-	printf("Exp(%lf):\n", x);
+/**
+ * Approximates the optimal number of terms (see documentation)
+ */
+int getIterations(float x) {
+	if (x < 14) return 34;
+	return 430 / (x + 10) + 14;
+}
 
+/**
+ * Calculates e(x) in an unoptimized manner: 
+ * 	recalculating the factorial and exponential in each iteration without caching
+ * 	-> optimization see exp_opt.c
+ */ 
+float exponential(float x, int n) {
 	float result = 0.0;
 	for(int i = 0; i < n; i++) {
 		float zaehler = power(x, i);
-		int nenner = fact(i);
+		float nenner = fact(i);
 		float part = zaehler/nenner;
-		printf("n: %i; Zähler: %lf; Nenner: %i; Part: %lf\n", n, zaehler, nenner, part);
 		result += part;
 	}
 	return result;
@@ -41,11 +52,11 @@ float power(float base, int exponent) {
 	return result;
 }
 
-int fact (int parameter) {
-	int result = 1;
+float fact (int parameter) {
+	float result = 1;
 
 	for(int i = 1; i <= parameter; i++) {
-		result *= i;
+		result *= (float) i;
 	}
 
 	return result;
