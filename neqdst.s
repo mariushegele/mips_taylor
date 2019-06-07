@@ -93,18 +93,21 @@ loop:
     add.s $f12, $f6, $f5    # copy x into argument
     jal printf_float_oneline
 
-    # y = exp(x)
+    
     mov.s $f12, $f5
-    li $a1, 12           # set number of terms for e(x) to 10 TODO: determine optimally
+    jal opt_terms # determine optimal number of terms
+    mov.s $f13, $f0
+
+    # y = exp(x)
     jal exp
-    s.s $f12, 20($sp)   # store e(x)
+    s.s $f0, 20($sp)   # store e(x)
     # print e(x)
     mov.s $f12, $f0
     jal printf_float_oneline
 
 
     # z = ln(y)
-    l.s $f0, 20($sp)   # restore e(x)
+    l.s $f12, 20($sp)   # restore e(x)
     jal ln
     # print ln(e(x))
     mov.s $f12, $f0
@@ -223,89 +226,61 @@ ret_ln0:
     jr $ra                      # else return
 
 
+#########      opt_terms       #########
 
+# arg:          $f12 = x
+# internal:     
+# return:       $f0 = n = optimal number of terms for x according to approximation
+
+opt_terms:
+    li.s $f0, 34.0   # possible iterations
+    li.s $f2, 14.0    # $f2 = 14
+    c.lt.s $f12, $f2  # parameter < 14
+    bc1t return_opt  # return if (parameter less than 14)
+
+    li.s $f3, 10.0    # $f3 = 10
+    add.s $f0, $f12, $f3   # $f0 = parameter + 10
+
+    li.s $f3, 430.0   # $f3 = 430
+    div.s $f0, $f3, $f0   # $f0 = 430 / $f0
+
+    add.s $f0, $f0, $f2
+
+return_opt:
+    jr $ra
 
 #########      exp       #########
 
-# arg:          $f12 = x //TODO: $a1 = n
-# internal:     $f1 = a, $f2 = result of power
-# return:       $f0 = e(x)
+# arg:          $f12 = x, $f13 = n
+# internal:     $f0 = result, $f2 = numerator, $f3 = denominator, $f4 = i, $f5 = 'part'(numerator/denominator)
+#               $f6 = saveplace for $f12 (for prints), $f7 = zero, $f8 = 1.0
+# return:       $f0 = result
 
 exp:
-    li.s $f1, 0.0           # result = 0.0
-    li $t0, 0               # i = 0
-    move $t3, $ra  # stash stack pointer
+    li.s $f0, 0.0           # result = 1.0
+    li.s $f2, 1.0           # numerator = 1.0
+    li.s $f3, 1.0           # denominator = 1.0
+    li.s $f4, 1.0           # i = 1
+    li.s $f8, 1.0           # f8 = 1.0
+    move $t3, $ra           # stash stack pointer
 
 exp_loop:
+    c.le.s $f13, $f4        # i <= n
+    bc1t exp_ret            # until i > n
 
-    bge $t0, $a1, exp_ret # if i>=n jump out of loop
+    mul.s $f2, $f2, $f12    # numerator = numerator * x
+    mul.s $f3, $f3, $f4     # denominator = denominator * i
 
-    move $a2, $t0 # exponent of power in a2
-    jal power
+    div.s $f5, $f2, $f3     # part = numerator/denominator
 
-    lwc1 $f3, const0 # load zero
-    add.s $f2, $f0, $f3 # result of power in f2
+    add.s $f0, $f0, $f5     # result += numerator / denominator
     
-    move $a2, $t0 # parameter of fact = 1
-    jal fact
-
-    mtc1 $v0, $f0
-    cvt.s.w $f0, $f0
-
-    div.s $f2, $f2, $f0 # power/fact
-
-    add.s $f1, $f1, $f2 # result += power/fact
-    addi $t0, $t0, 1
+    add.s $f4, $f4, $f8    # i++
     j exp_loop
 
 exp_ret:
-    add.s $f0, $f1, $f3
-    jr $t3
 
-
-#########       power         #########
-
-# args:         $a2 = exponent, $f12 = x
-# return:       $f0 = power x^exponent
-
-power:
-    li.s $f0, 1.0
-
-power_loop:
-
-    li $t1, 0
-    ble $a2, $t1, power_ret  # branch if exponent <= 0
-    mul.s $f0, $f0, $f12
-    addi $a2, $a2, -1
-
-    j power_loop
-
-power_ret:
-    jr $ra
-
-
-#########       fact         #########
-
-# args:         $a2 = x
-# return:       $v0 = fact(i)
-
-fact:
-    li $t2, 1 # i
-    li $v0, 1 # result
-
-fact_loop:
-
-    bgt $t2, $a2, fact_ret  # branch if i > parameter
-
-    mul $v0, $v0, $t2
-    addi $t2, $t2, 1
-
-    j fact_loop
-
-fact_ret:
-    jr $ra
-
-
+    jr $t3 # result is in $f0
 
 
 ######### Helper I/O functions  #########

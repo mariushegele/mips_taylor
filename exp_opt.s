@@ -2,21 +2,6 @@
 #
 .data 
 x_prompt: .asciiz "Enter x: "
-n_prompt: .asciiz "How many iterations should I run(n): "
-debugprint: .asciiz "heyo"
-exploopprint: .asciiz "\nIn EXP-Loop "
-powerloopprint: .asciiz "In Power-Loop"
-factloopprint: .asciiz " In Fact-Loop, i = "
-expreturnprint: .asciiz " In EXP-Return"
-powerreturnprint: .asciiz "In Power-Return.\n\tZähler: "
-factreturnprint: .asciiz " In Fact-Return.\n\tNenner: "
-expafterprint: .asciiz "After EXP"
-powerafterprint: .asciiz " After Power"
-factafterprint: .asciiz " After Fact.\n\tPart: "
-zaehlerprint: .asciiz "Zähler: "
-nennerprint: .asciiz "Nenner: "
-partprint: .asciiz "Part: "
-factinprint: .asciiz "Entered Fact, parameter: "
 res: .asciiz "\nexp(x) = "
 done_prompt: .asciiz " Done [0 = Yes, 1 = No]: "
 newline: .asciiz "\n"
@@ -31,128 +16,85 @@ exptemp: .word 4
 .globl main
 .text			
 
-main:
-    li.s $f7, 0.0 # global zero
-    li.s $f8, 1.0 # global one
-    ########## Print X-Prompt ###########
+main:    
+    # Print X-Prompt
     la      $a0, x_prompt
     jal     print
-    #####################################
 
-    ########## Read X from user ###########
+    # Read X from user
     jal     read_float
     mov.s   $f12, $f0  # set read float as arg
-    #######################################
 
-    li.s $f13, 34.0   # possible iterations
-    li.s $f2, 14.0    # $f2 = 14
-    c.lt.s $f12, $f2  # parameter < 14
-    bc1t parameter_set  # jump if (parameter less than 14)
-
-    li.s $f3, 10.0    # $f3 = 10
-    add.s $f13, $f12, $f3   # $f13 = parameter + 10
-
-    li.s $f3, 400.0   # $f3 = 400
-    div.s $f13, $f3, $f13   # $f13 = 400 / $f13
-
-    add.s $f13, $f13, $f2
-
-parameter_set:
+    # determine optimal number of iterations for x = f12
+    jal opt_terms 
+    mov.s $f13, $f0
 
     # Execute Function
     jal exp
 
-    ########## Print After-Exp-Loop-Print ###########
-    #la  $a0, expafterprint
-    #jal print
-    #################################################
-
     # Store Result
     s.s $f0, z
 
-    ########## Print Function Result ###########
+    # Print Function Result
     mov.s $f12, $f0    # move $f0 to $f12
     jal print_result
-    ############################################
 
     # Prompt if Done
     jal prompt_redo
 
+#########      opt_terms       #########
+
+# arg:          $f12 = x
+# internal:     
+# return:       $f0 = n = optimal number of terms for x according to approximation
+
+opt_terms:
+    li.s $f0, 34.0   # possible iterations
+    li.s $f2, 14.0    # $f2 = 14
+    c.lt.s $f12, $f2  # parameter < 14
+    bc1t return_opt  # return if (parameter less than 14)
+
+    li.s $f3, 10.0    # $f3 = 10
+    add.s $f0, $f12, $f3   # $f0 = parameter + 10
+
+    li.s $f3, 430.0   # $f3 = 430
+    div.s $f0, $f3, $f0   # $f0 = 430 / $f0
+
+    add.s $f0, $f0, $f2
+
+return_opt:
+    jr $ra
 
 #########      exp       #########
 
 # arg:          $f12 = x, $f13 = n
-# internal:     $f0 = result, $f2 = power, $f3 = factorial, $f4 = i, $f5 = 'part'(power/fact)
+# internal:     $f0 = result, $f2 = numerator, $f3 = denominator, $f4 = i, $f5 = 'part'(numerator/denominator)
 #               $f6 = saveplace for $f12 (for prints), $f7 = zero, $f8 = 1.0
 # return:       $f0 = result
 
 exp:
-    li.s $f0, 0.0           # result = 0.0
-    li.s $f2, 1.0           # power = 1.0
-    li.s $f3, 1.0           # fact = 1.0
-    li.s $f4, 0.0             # i = 0
+    li.s $f0, 0.0           # result = 1.0
+    li.s $f2, 1.0           # numerator = 1.0
+    li.s $f3, 1.0           # denominator = 1.0
+    li.s $f4, 1.0           # i = 1
+    li.s $f8, 1.0           # f8 = 1.0
     move $t3, $ra           # stash stack pointer
 
-    ########## Print initial x ###########
-    #jal print_float
-    ###################################
 exp_loop:
-    c.le.s $f13, $f4 # n<=i
-    bc1t exp_ret  # if n<=i jump out of loop
+    c.le.s $f13, $f4        # i <= n
+    bc1t exp_ret            # until i > n
 
+    mul.s $f2, $f2, $f12    # numerator = numerator * x
+    mul.s $f3, $f3, $f4     # denominator = denominator * i
+
+    div.s $f5, $f2, $f3     # part = numerator/denominator
+
+    add.s $f0, $f0, $f5     # result += numerator / denominator
     
-    ########## Print Exp-Loop-Print ###########
-    #la      $a0, exploopprint
-    #jal print
-    ###################################
-
-
-    ########## Print Power ###########
-    #add.s $f6, $f12, $f7   # save $f12
-    #add.s $f12, $f2, $f7    # prepare $f2 to be printed
-    #jal print_float
-    #add.s $f12, $f6, $f7   # restore $f12
-    ###################################
-
-    ########## Print x ###########
-    #jal print_float
-    ###################################
-
-    c.eq.s $f4, $f7 # ignore changes to factorial and power if i = 0
-    bc1t partcal  # jump if i = 0
-
-
-    mul.s $f2, $f2, $f12    # power = power * x
-
-    ########## Print Power ###########
-    #add.s $f6, $f12, $f7  # print power
-    #add.s $f12, $f2, $f7
-    #jal print_float
-    #add.s $f12, $f6, $f7
-    ###################################
-
-    mul.s $f3, $f3, $f4     # fact = fact * i
-
-partcal:
-    div.s $f5, $f2, $f3 # power/fact
-    
-    ########## Print Part ###########
-    #add.s $f6, $f12, $f7  # print part
-    #add.s $f12, $f5, $f7 
-    #jal print_float
-    #add.s $f12, $f6, $f7
-    ###################################
-
-    add.s $f0, $f0, $f5 # result += part
     add.s $f4, $f4, $f8    # i++
     j exp_loop
 
 exp_ret:
-
-    ########## Print Prompt ###########
-    #la         $a0, expreturnprint
-    #jal print
-    ###################################
 
     jr $t3 # result is in $f0
 

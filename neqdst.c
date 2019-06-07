@@ -4,8 +4,8 @@
 void neqdst(unsigned int, float, float);
 float ln(float, unsigned int);
 float ln0(float, unsigned int);
-int getIterations(float);
-float exponential(float, int);
+float getIterations(float);
+float exponential(float, float);
 
 int main() {
     neqdst(10, 1.0, 10.0);
@@ -79,7 +79,7 @@ float ln(float x, unsigned int terms) {
 /**
  * Approximates the optimal number of terms for e (see documentation)
  */
-int getIterations(float x) {
+float getIterations(float x) {
 	if (x < 14) return 34;
 	return 430 / (x + 10) + 14;
 }
@@ -88,12 +88,12 @@ int getIterations(float x) {
  * Optimized calculation of e(x)
  * 	Caching the nominator and denominator
  */
-float exponential(float x, int iterations) {
+float exponential(float x, float iterations) {
 	float result = 1.0;
 	float nominator = 1.0;
 	float denominator = 1.0;
 
-	for(float i = 1; i <= iterations; i++) {
+	for(float i = 1; i < iterations; i++) {
 		nominator = nominator * x;
 		denominator = denominator * i;
 		float part = nominator/denominator;

@@ -2,24 +2,10 @@
 #
 .data 
 x_prompt: .asciiz "Enter x: "
-n_prompt: .asciiz "How many iterations do you want(n): "
-debugprint: .asciiz "heyo"
-exploopprint: .asciiz "\nIn EXP-Loop "
-powerloopprint: .asciiz "In Power-Loop"
-factloopprint: .asciiz " In Fact-Loop, i = "
-expreturnprint: .asciiz " In EXP-Return"
-powerreturnprint: .asciiz "In Power-Return.\n\tZähler: "
-factreturnprint: .asciiz " In Fact-Return.\n\tNenner: "
-expafterprint: .asciiz "After EXP"
-powerafterprint: .asciiz " After Power"
-factafterprint: .asciiz " After Fact.\n\tPart: "
-zaehlerprint: .asciiz "Zähler: "
-nennerprint: .asciiz "Nenner: "
-partprint: .asciiz "Part: "
-factinprint: .asciiz "Entered Fact, parameter: "
 res: .asciiz "\nexp(x) = "
 done_prompt: .asciiz " Done [0 = Yes, 1 = No]: "
 newline: .asciiz "\n"
+
 zero: .float 0.0
 
 .align 2
@@ -40,8 +26,7 @@ main:
     jal read_float
     mov.s $f12, $f0  # set read float as arg
 
-    # TODO: ask for n(iterations)
-    li $a1, 6
+    li $a1, 6 # set number of terms to constant of 6
 
     # Execute Function
     jal exp
@@ -72,6 +57,7 @@ exp_loop:
     move $a2, $t0 # exponent of power in a2
     jal power
 
+    lwc1 $f3, zero
     add.s $f2, $f0, $f3 # result of power in f2
     
     move $a2, $t0 # parameter of fact = 1
@@ -80,24 +66,12 @@ exp_loop:
     mtc1 $v0, $f0
     cvt.s.w $f0, $f0
     div.s $f2, $f2, $f0 # power/fact
-    
-    lwc1 $f3, zero # global zero
-    add.s $f13, $f12, $f3  # print part
-    add.s $f12, $f2, $f3 
-    li $v0, 2 # print float in $f12
-    syscall
-    add.s $f12, $f13, $f3
 
     add.s $f1, $f1, $f2 # result += power/fact
     addi $t0, $t0, 1
     j exp_loop
 
 exp_ret:
-
-    # Print Prompt
-    la $a0, expreturnprint
-    jal prompt
-
     add.s $f0, $f1, $f3
     jr $t3
 
@@ -109,20 +83,8 @@ exp_ret:
 
 power:
     li.s $f2, 1.0
-    move $t4, $ra  # stash stack pointer
 
 power_loop:
-
-    #move $t9, $a2 
-    move $a0, $a2  # print exponent
-    li   $v0, 1
-    syscall
-    #move $a2, $t9
-
-    # Print Prompt
-    la $a0, powerloopprint
-    jal prompt
-
     li $t1, 0
     ble $a2, $t1, power_ret  # branch if exponent <= 0
     mul.s $f2, $f2, $f12
@@ -131,19 +93,8 @@ power_loop:
     j power_loop
 
 power_ret:
-
-    # Print Prompt
-    la $a0, powerreturnprint
-    jal prompt
-
-    add.s $f13, $f12, $f3  # print zähler
-    add.s $f12, $f2, $f3 
-    li $v0, 2 # print float in $f12
-    syscall
-    add.s $f12, $f13, $f3 
-
     add.s $f0, $f2, $f3 # copy f2 to f0
-    jr $t4
+    jr $ra
 
 
 #########       fact         #########
@@ -153,32 +104,11 @@ power_ret:
 
 fact:
     li $t2, 1 # i
-    move $t5, $ra  # stash stack pointer
-
-    # Print Prompt
-    la $a0, factinprint
-    jal prompt
-
-    move $a0, $a2  # print nenner
-    li   $v0, 1
-    syscall
-
-    # li $v0, 1 # result
+    li $v0, 1 # result
 
 fact_loop:
 
     bgt $t2, $a2, fact_ret  # branch if i > parameter
-
-    move $t6, $v0
-    # Print Prompt
-    la $a0, factloopprint
-    jal prompt
-  
-    move $a0, $t2  # print i
-    li   $v0, 1
-    syscall
-
-    move $v0, $t6
 
     mul $v0, $v0, $t2
     addi $t2, $t2, 1
@@ -186,18 +116,7 @@ fact_loop:
     j fact_loop
 
 fact_ret:
-    move $t6, $v0
-
-    # Print Prompt
-    la $a0, factreturnprint
-    jal prompt
-
-    move $a0, $t6  # print nenner
-    li   $v0, 1
-    syscall
-
-    move $v0, $t6
-    jr $t5
+    jr $ra
 
 
 ######### Helper I/O functions  #########

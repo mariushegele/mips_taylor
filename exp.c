@@ -1,28 +1,20 @@
 #include <stdio.h>
 #include <math.h>
 
-int getIterations(float);
-float fact (int parameter);
+int fact (int parameter);
 float power(float base, int exponent);
 float exponential(float x, int n);
 
 int main() {
 	float parameter = 15.0;
-	int iterations = getIterations(parameter);
+	int iterations = 6; // this implementation doesn't respect the optimal number of terms
 	float result = exponential(parameter, iterations);
+
 	printf("%i iterations\n", iterations);
 	printf("e(%f) = %f\n", parameter, result);
 	printf("error of %f\n", exp(parameter) - result);
 	
 	return 1;
-}
-
-/**
- * Approximates the optimal number of terms (see documentation)
- */
-int getIterations(float x) {
-	if (x < 14) return 34;
-	return 430 / (x + 10) + 14;
 }
 
 /**
@@ -33,9 +25,9 @@ int getIterations(float x) {
 float exponential(float x, int n) {
 	float result = 0.0;
 	for(int i = 0; i < n; i++) {
-		float zaehler = power(x, i);
-		float nenner = fact(i);
-		float part = zaehler/nenner;
+		float numerator = power(x, i);
+		int denominator = fact(i);
+		float part = numerator / denominator;
 		result += part;
 	}
 	return result;
@@ -52,11 +44,15 @@ float power(float base, int exponent) {
 	return result;
 }
 
-float fact (int parameter) {
-	float result = 1;
+/**
+ * Potential for optimization: integer register can't hold high values
+ * 	-> enforces low upper bound for n
+ */
+int fact (int parameter) {
+	int result = 1;
 
 	for(int i = 1; i <= parameter; i++) {
-		result *= (float) i;
+		result *= i;
 	}
 
 	return result;
